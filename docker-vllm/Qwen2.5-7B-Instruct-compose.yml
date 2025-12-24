@@ -1,0 +1,40 @@
+ervices:
+  vllm:
+    image: vllm/vllm-openai:v0.13.0
+    ports:
+      - "8085:8000"
+    volumes:
+      - ./models:/app/model
+    environment:
+      - OMP_NUM_THREADS=8
+      - VLLM_WORKER_MULTIPROC_METHOD=spawn
+      - VLLM_LOGGING_LEVEL=INFO
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - VLLM_ALLOW_LONG_MAX_MODEL_LEN=1
+    command:
+      - /app/model/Qwen/Qwen2.5-7B-Instruct-AWQ
+      - --dtype
+      - half
+      - --tokenizer-mode
+      - auto
+      - --trust-remote-code
+      - --quantization
+      - awq
+      - --tensor-parallel-size
+      - "2"
+      - --gpu-memory-utilization
+      - "0.90"
+      - --max-model-len
+      - "8192"
+      # - --disable-custom-all-reduce
+      - --enforce-eager
+
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
